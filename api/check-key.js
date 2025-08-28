@@ -1,15 +1,33 @@
-export const config = { runtime: 'edge' };
-function jsonRes(obj, status=200){ return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } }); }
+// api/validate-key.js
+// Simple key validation: make a light request using the key; if unauthorized -> invalid.
+// Uses the Generative Language / Gemini predictLongRunning endpoint.
+import fetch from 'node-fetch';
 
-export default async function handler(req){
-  if(req.method!=='POST') return jsonRes({ ok:false, message:'POST only' },405);
-  let body; try{ body = await req.json(); }catch(e){ return jsonRes({ ok:false, message:'Invalid JSON' },400); }
-  const { apiKey } = body || {}; if(!apiKey) return jsonRes({ ok:false, message:'Missing apiKey' },400);
-  try{
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(apiKey);
-    const res = await fetch(url, { headers:{'Content-Type':'application/json'} });
-    if(!res.ok) return jsonRes({ ok:false, message:'Invalid or blocked key' },200);
-    const data = await res.json(); const hasVeo = Array.isArray(data?.models) && data.models.some(m => (m?.name||'').includes('veo'));
-    return jsonRes({ ok:true, hasVeo });
-  }catch(e){ return jsonRes({ ok:false, message:'Network error' },200); }
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  const { apiKey } = req.body || {};
+  if (!apiKey) return res.status(400).json({ valid: false, error: 'missing key' });
+
+  try {
+    // lightweight call: try listing models or a tiny predict call that should 401 if invalid.
+    // We'll hit the "models list" endpoint (generativelanguage) to validate the key.
+    const resp = await fetch('https://generativelanguage.googleapis.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'x-goog-api-key': apiKey,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (resp.status === 200) {
+      return res.status(200).json({ valid: true });
+    } else {
+      // not 200 -> invalid or restricted
+      const text = await resp.text();
+      return res.status(200).json({ valid: false, status: resp.status, details: text });
+    }
+  } catch (err) {
+    console.error('validate-key error', err);
+    return res.status(500).json({ valid: false, error: String(err) });
+  }
 }

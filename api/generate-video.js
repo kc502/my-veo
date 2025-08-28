@@ -1,35 +1,54 @@
-export const config = { runtime: 'edge' };
+// api/generate.js
+import fetch from 'node-fetch';
 
-function jsonRes(obj, status=200){ return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } }); }
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  const body = req.body || {};
+  const {
+    apiKey, model, aspectRatio, personGeneration,
+    negativePrompt, prompt, resolution
+  } = body;
 
-export default async function handler(req){
-  if(req.method!=='POST') return jsonRes({ ok:false, message:'POST only' },405);
-  let body; try{ body = await req.json(); }catch(e){ return jsonRes({ ok:false, message:'Invalid JSON' },400); }
-  const { apiKey, model, aspect, person, resolution, prompt, negative } = body || {};
-  if(!apiKey || !model || !prompt) return jsonRes({ ok:false, message:'Missing fields' },400);
+  if (!apiKey || !model || !prompt) return res.status(400).json({ error: 'Missing required fields' });
 
-  const [w,h] = resolution==='1080p' ? [1920,1080] : [1280,720];
+  try {
+    // Build the predictLongRunning URL for the chosen model
+    // Example: https://generativelanguage.googleapis.com/v1/models/veo-3.0-generate-preview:predictLongRunning
+    const url = `https://generativelanguage.googleapis.com/v1/models/${encodeURIComponent(model)}:predictLongRunning`;
 
-  const safety = (()=>{ switch(person){ case 'allow_all': return { allowAdultContent:false }; case 'allow_adult': return { allowAdultContent:true }; case 'not_allow': return { allowAdultContent:false, blockPersons:true }; default: return {}; } })();
+    const requestBody = {
+      instances: [{
+        prompt: prompt
+      }],
+      parameters: {
+        aspectRatio,
+        personGeneration,
+        negativePrompt,
+        // You may pass resolution in parameters if supported by model
+        resolution
+      }
+    };
 
-  // TODO: Update endpoint & payload to match the latest Google Veo API.
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateVideo`;
-  const payload = {
-    prompt,
-    negativePrompt: negative || undefined,
-    videoConfig: { width: w, height: h, aspectRatio: aspect },
-    safetySettings: safety
-  };
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'x-goog-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-  try{
-    const upstream = await fetch(endpoint + `?key=${encodeURIComponent(apiKey)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-    if(!upstream.ok){ const txt = await upstream.text(); return jsonRes({ ok:false, message:'Upstream error', detail: txt },502); }
-    const data = await upstream.json();
-    // Case: immediate content
-    if(data?.video?.base64) return jsonRes({ ok:true, base64: data.video.base64 });
-    if(data?.video?.uri) return jsonRes({ ok:true, url: data.video.uri });
-    // Case: long-running operation
-    if(data?.name || data?.operation || data?.jobId) return jsonRes({ ok:true, jobId: data.name || data.operation || data.jobId });
-    return jsonRes({ ok:false, message:'Unknown upstream response', raw:data },500);
-  }catch(err){ return jsonRes({ ok:false, message: err?.message || 'Fetch error' },500); }
+    const j = await resp.json();
+    if (!resp.ok) {
+      return res.status(502).json({ error: 'Upstream error', details: j });
+    }
+
+    // The API returns an operation handle for long-running job
+    // Example response: { name: "operations/..." } or full operation object
+    return res.status(200).json({ operationName: j.name || (j.operation && j.operation.name) || null, raw: j });
+
+  } catch (err) {
+    console.error('generate error', err);
+    return res.status(500).json({ error: String(err) });
+  }
 }

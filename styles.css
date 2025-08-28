@@ -1,25 +1,17 @@
-:root{--bg:#0b0f17;--card:#111826;--muted:#9aa3b2;--text:#e8eef8;--accent:#6ee7ff;--ok:#22c55e;--danger:#ff6b6b;--ring:#2dd4bf;--border:#1f2937}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Myanmar",sans-serif;background:linear-gradient(180deg,#0b0f17,#0d1320 40%,#0b0f17);color:var(--text)}header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}header h3{margin:0}header .meta{color:var(--muted);font-size:13px}
-.wrap{max-width:1100px;margin:20px auto;padding:0 18px}
-.card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
-.keycard .rowline{display:flex;gap:8px;align-items:center}
-input[type=text],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0e1522;color:var(--text);outline:none}textarea{min-height:100px}
-.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#151e31;color:var(--text);cursor:pointer}
-.btn.ghost{background:transparent}
-.btn.primary{background:linear-gradient(180deg,#1b2a46,#142038)}
-.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-.help{color:var(--muted);font-size:13px}
-.video-box{aspect-ratio:16/9;background:#061025;border-radius:10px;border:1px dashed #17313c;display:grid;place-items:center;overflow:hidden}
-.skeleton{padding:10px;color:var(--muted)}
-.preview{width:65%;float:left}
-.side{width:32%;float:right}
-.badge{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--muted)}
-.error{color:var(--danger);padding:6px 0}
-.log{background:#07101a;padding:8px;border-radius:8px;border:1px solid var(--border);font-family:monospace;font-size:12px;max-height:180px;overflow:auto}
-.history{margin-top:12px}
-.history-list{max-height:220px;overflow:auto}
-.history-item{padding:8px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;background:rgba(255,255,255,0.01)}
-.history-item small{color:var(--muted)}
-footer{padding:18px;text-align:center;color:var(--muted);clear:both}
-@media(max-width:900px){.preview,.side{width:100%;float:none}}
+:root { --bg:#0f1724; --card:#0b1220; --accent:#60a5fa; --muted:#94a3b8; --surface:#071026; color-scheme:dark }
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,"Noto Sans",sans-serif;margin:0;background:linear-gradient(180deg,#071026 0%,#081827 100%);color:#e6eef8;min-height:100vh;padding:24px}
+.container{max-width:900px;margin:0 auto}
+h1{margin:0 0 18px;font-size:1.6rem}
+.card{background:rgba(255,255,255,0.02);padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+label{display:block;margin-top:8px;font-weight:600}
+input[type="password"],select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;margin-top:6px}
+.row{display:flex;gap:8px;align-items:center}
+.row input{flex:1}
+button{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#021124;cursor:pointer}
+button.primary{background:#10b981;color:white}
+.muted{color:var(--muted);margin-left:8px}
+.note{font-size:12px;color:var(--muted);margin-top:6px}
+.controls{display:flex;gap:10px;align-items:center;margin-top:8px}
+.small{font-size:12px}
+#resultArea video{max-width:100%;border-radius:8px;display:block;margin-top:10px}

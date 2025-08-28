@@ -1,36 +1,41 @@
-export const config = { runtime: 'edge' };
-function jsonRes(obj, status=200){ return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } }); }
+// api/operation-status.js
+import fetch from 'node-fetch';
 
-export default async function handler(req){
-  if(req.method!=='POST') return jsonRes({ ok:false, message:'POST only' },405);
-  let body; try{ body = await req.json(); }catch(e){ return jsonRes({ ok:false, message:'Invalid JSON' },400); }
-  const { apiKey, operationName } = body || {};
-  if(!apiKey || !operationName) return jsonRes({ ok:false, message:'Missing apiKey or operationName' },400);
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  const { operationName, apiKey } = req.body || {};
+  if (!operationName || !apiKey) return res.status(400).json({ error: 'missing' });
 
-  // The operations.get endpoint for Google long-running operations usually is:
-  // GET https://generativelanguage.googleapis.com/v1beta/{name=operations/*}
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/${encodeURIComponent(operationName)}`;
-
-  try{
-    const res = await fetch(endpoint + `?key=${encodeURIComponent(apiKey)}`, { headers:{'Content-Type':'application/json'} });
-    if(!res.ok){ const txt = await res.text(); return jsonRes({ ok:false, message:'Upstream op get failed', detail: txt },502); }
-    const data = await res.json();
-    // Expected op response may include: done: bool, response/result, metadata for progress
-    // Map to { ok:true, done, progress:{percent,stage}, url?, base64? }
-    const done = !!data?.done;
-    let progress = null;
-    if(data?.metadata){ progress = data.metadata.progress || data.metadata; }
-
-    if(done){
-      // If operation finished, the response might be in data.response or data.result
-      const resp = data.response || data.result || {};
-      // Try to extract video.uri or video.base64 conservatively
-      if(resp?.video?.uri) return jsonRes({ ok:true, done:true, url: resp.video.uri });
-      if(resp?.video?.base64) return jsonRes({ ok:true, done:true, base64: resp.video.base64 });
-      // If unknown, return done:true with raw
-      return jsonRes({ ok:true, done:true, raw: resp });
+  try {
+    // GET the operation
+    // Operation endpoint: https://generativelanguage.googleapis.com/v1/{name=operations/*}
+    const url = `https://generativelanguage.googleapis.com/v1/${encodeURIComponent(operationName)}`;
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: { 'x-goog-api-key': apiKey }
+    });
+    const j = await resp.json();
+    if (!resp.ok) {
+      return res.status(502).json({ error: 'Upstream error', details: j });
     }
 
-    return jsonRes({ ok:true, done:false, progress });
-  }catch(e){ return jsonRes({ ok:false, message: e.message || 'Fetch failed' },500); }
+    // When done: operation.done === true and operation.response.generatedVideos[0] contains file refs
+    if (j.done) {
+      // try to extract generated video file url if present
+      try {
+        const video = (j.response?.generated_videos || j.response?.generatedVideos || [])[0];
+        const fileRef = video?.video || video?.videoUrl || video?.video?.gs_uri || null;
+        // Note: depending on API, you may need to call ai.files.download, or use returned signed URL.
+        // We'll return raw operation as fallback.
+        return res.status(200).json({ done: true, downloadUrl: fileRef, operation: j });
+      } catch (e) {
+        return res.status(200).json({ done: true, operation: j });
+      }
+    } else {
+      return res.status(200).json({ done: false, operation: j });
+    }
+  } catch (err) {
+    console.error('operation-status error', err);
+    return res.status(500).json({ error: String(err) });
+  }
 }
