@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Veo3 Video Generator</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <h3>Veo3 Video Generator</h3>
+    <div class="meta">Frontend: HTML/CSS/JS • Backend: Vercel Functions</div>
+  </header>
+
+  <main class="wrap">
+    <section class="card keycard">
+      <label>Gemini API Key <span id="keyStatus" class="dot gray" title="Not checked"></span></label>
+      <div class="rowline">
+        <input id="apiKey" type="text" placeholder="Paste Gemini API key (kept in-memory only)" autocomplete="off" spellcheck="false" />
+        <button id="btnCheck" class="btn">Check</button>
+        <button id="btnClearKey" class="btn ghost">Clear</button>
+      </div>
+      <div class="help" id="keyMsg">We never persist your key. It's sent only to /api/check-key and /api/generate-video when you request generation.</div>
+    </section>
+
+    <section class="card">
+      <div class="grid-2">
+        <div>
+          <label>Model</label>
+          <select id="model">
+            <option value="veo-3-generate-preview">veo-3-generate-preview</option>
+            <option value="veo-3-fast-generate-preview">veo-3-fast-generate-preview</option>
+            <option value="veo-2-generate-stable">veo-2-generate-stable</option>
+          </select>
+        </div>
+        <div>
+          <label>Aspect Ratio</label>
+          <select id="aspect"><option value="16:9">16:9</option></select>
+        </div>
+        <div>
+          <label>Person</label>
+          <select id="person">
+            <option value="allow_all">Allow all</option>
+            <option value="allow_adult">Allow adult</option>
+            <option value="not_allow">Not allow</option>
+          </select>
+        </div>
+        <div>
+          <label>Resolution</label>
+          <select id="resolution"><option value="720p">720p</option><option value="1080p">1080p</option></select>
+        </div>
+      </div>
+
+      <label>Negative Prompt (optional)</label>
+      <textarea id="negative" placeholder="No blur, no watermark..."></textarea>
+
+      <label>Video Prompt</label>
+      <textarea id="prompt" placeholder="Describe your scene..." required></textarea>
+
+      <div class="actions">
+        <div class="left">
+          <button id="btnGenerate" class="btn primary">Generate</button>
+          <button id="btnCancel" class="btn ghost" disabled>Cancel</button>
+        </div>
+        <div class="right">
+          <div id="status" class="help">Idle</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card result">
+      <div class="preview">
+        <div id="videoBox" class="video-box"><div id="placeholder" class="skeleton">No preview</div></div>
+      </div>
+
+      <div class="side">
+        <div class="topbar"><strong>Result</strong> <span id="runBadge" class="badge">Idle</span></div>
+        <div id="errors" class="error" hidden></div>
+
+        <details>
+          <summary>Logs</summary>
+          <div id="log" class="log"></div>
+        </details>
+
+        <div class="history">
+          <div class="history-header"><strong>Job History</strong> <button id="btnClearHistory" class="btn ghost">Clear</button></div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer>Do not use this project to bypass georestrictions or violate Terms of Service.</footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
