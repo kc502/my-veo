@@ -2,108 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Veo 3 Video Generator</title>
+  <title>Veo Video Generator</title>
   <style>
-    body { font-family: sans-serif; background:#0d1117; color:#eee; padding:20px; }
-    .box { background:#161b22; padding:15px; border-radius:10px; margin-bottom:20px; }
-    input, select, textarea, button { width:100%; margin:5px 0; padding:10px; border-radius:6px; border:none; }
-    button { background:#238636; color:#fff; cursor:pointer; }
-    button:disabled { background:#555; }
-    .error { color:#f87171; margin-top:5px; }
+    body { background:#0f172a; color:white; font-family:sans-serif; padding:20px; }
+    input, select, textarea, button { width:100%; padding:8px; margin:6px 0; border-radius:8px; }
+    button { background:#10b981; color:white; font-weight:bold; border:none; cursor:pointer; }
+    button:disabled { background:#6b7280; cursor:not-allowed; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>Gemini / Veo API Key</h2>
-    <input type="password" id="apiKey" placeholder="Paste your API key here">
-    <button onclick="validateKey()">Validate</button>
-    <div id="keyStatus"></div>
-  </div>
+  <h2>Gemini / Veo Video Generator</h2>
 
-  <div class="box">
-    <h3>Model</h3>
-    <select id="model">
-      <option value="veo-3-fast-generate-preview">veo-3-fast-generate-preview</option>
-      <option value="veo-3-generate-preview">veo-3-generate-preview</option>
-      <option value="veo-2-generate-stable">veo-2-generate-stable</option>
-    </select>
+  <label>API Key</label>
+  <input type="password" id="apiKey" placeholder="Paste Gemini API key here" />
+  <button onclick="validateKey()">Validate</button>
+  <p id="keyStatus"></p>
 
-    <h3>Aspect Ratio</h3>
-    <select id="aspectRatio">
-      <option value="16:9">16:9</option>
-    </select>
+  <label>Model</label>
+  <select id="model">
+    <option value="veo-3-generate-preview">veo-3-generate-preview</option>
+    <option value="veo-3-fast-generate-preview">veo-3-fast-generate-preview</option>
+    <option value="veo-2-generate-stable">veo-2-generate-stable</option>
+  </select>
 
-    <h3>Person generation</h3>
-    <select id="person">
-      <option value="allow_all">Allow all</option>
-      <option value="allow_adult">Allow adult</option>
-      <option value="not_allow">Not allow</option>
-    </select>
+  <label>Aspect Ratio</label>
+  <select id="aspectRatio">
+    <option value="16:9">16:9</option>
+    <option value="9:16">9:16</option>
+    <option value="1:1">1:1</option>
+  </select>
 
-    <h3>Resolution</h3>
-    <select id="resolution">
-      <option value="720p">720p HD</option>
-      <option value="1080p">1080p Full HD</option>
-    </select>
+  <label>Person Generation</label>
+  <select id="person">
+    <option value="allow_all">Allow all</option>
+    <option value="allow_adult">Allow adult</option>
+    <option value="not_allow">Not allow</option>
+  </select>
 
-    <h3>Negative prompt (optional)</h3>
-    <input type="text" id="negativePrompt" placeholder="eg: cartoon, text, watermark">
+  <label>Resolution</label>
+  <select id="resolution">
+    <option value="720p">720p HD</option>
+    <option value="1080p">1080p FHD</option>
+  </select>
 
-    <h3>Video prompt</h3>
-    <textarea id="prompt" rows="4" placeholder="Describe your video..."></textarea>
+  <label>Negative Prompt</label>
+  <input type="text" id="negativePrompt" placeholder="cartoon, text, watermark" />
 
-    <button id="genBtn" onclick="generateVideo()" disabled>Generate Video</button>
-    <div id="genStatus"></div>
-  </div>
+  <label>Video Prompt</label>
+  <textarea id="prompt" placeholder="Describe your video..."></textarea>
+
+  <button id="generateBtn" onclick="generateVideo()">Generate Video</button>
+  <p id="result"></p>
 
   <script>
-    let apiKey = "";
-
     async function validateKey() {
-      apiKey = document.getElementById("apiKey").value.trim();
-      if (!apiKey) return;
-
-      document.getElementById("keyStatus").textContent = "Checking...";
-      const res = await fetch("/api/validate-key", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ apiKey })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        document.getElementById("keyStatus").textContent = "✅ Valid key";
-        document.getElementById("genBtn").disabled = false;
-      } else {
-        document.getElementById("keyStatus").textContent = "❌ Invalid key";
-        document.getElementById("genBtn").disabled = true;
-      }
+      const key = document.getElementById("apiKey").value;
+      if (!key) { alert("Enter API key"); return; }
+      document.getElementById("keyStatus").innerText = "✅ Key entered (not checked server-side)";
     }
 
     async function generateVideo() {
+      const btn = document.getElementById("generateBtn");
+      btn.disabled = true;
+      btn.innerText = "Generating...";
+
       const body = {
-        apiKey,
+        apiKey: document.getElementById("apiKey").value,
         model: document.getElementById("model").value,
         aspectRatio: document.getElementById("aspectRatio").value,
         person: document.getElementById("person").value,
         resolution: document.getElementById("resolution").value,
-        negativePrompt: document.getElementById("negativePrompt").value,
-        prompt: document.getElementById("prompt").value
+        prompt: document.getElementById("prompt").value,
+        negativePrompt: document.getElementById("negativePrompt").value
       };
 
-      document.getElementById("genStatus").textContent = "⏳ Generating...";
-      const res = await fetch("/api/generate-video", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(body)
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        document.getElementById("genStatus").textContent = "❌ " + data.error;
-      } else {
-        document.getElementById("genStatus").innerHTML = "✅ Video generated!<br><pre>"+JSON.stringify(data,null,2)+"</pre>";
+      try {
+        const res = await fetch("/api/generate-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById("result").innerText = "❌ Error: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Generate Video";
       }
     }
   </script>
