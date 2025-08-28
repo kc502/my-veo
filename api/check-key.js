@@ -1,33 +1,33 @@
 // api/validate-key.js
-// Simple key validation: make a light request using the key; if unauthorized -> invalid.
-// Uses the Generative Language / Gemini predictLongRunning endpoint.
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== "POST") return res.status(405).end();
   const { apiKey } = req.body || {};
-  if (!apiKey) return res.status(400).json({ valid: false, error: 'missing key' });
+  if (!apiKey) return res.status(400).json({ valid: false, error: "missing key" });
 
   try {
-    // lightweight call: try listing models or a tiny predict call that should 401 if invalid.
-    // We'll hit the "models list" endpoint (generativelanguage) to validate the key.
-    const resp = await fetch('https://generativelanguage.googleapis.com/v1/models', {
-      method: 'GET',
-      headers: {
-        'x-goog-api-key': apiKey,
-        'Accept': 'application/json'
+    const resp = await fetch(
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": apiKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: "ping" }] }]
+        })
       }
-    });
+    );
 
-    if (resp.status === 200) {
+    if (resp.ok) {
       return res.status(200).json({ valid: true });
     } else {
-      // not 200 -> invalid or restricted
-      const text = await resp.text();
-      return res.status(200).json({ valid: false, status: resp.status, details: text });
+      const err = await resp.text();
+      return res.status(200).json({ valid: false, details: err });
     }
-  } catch (err) {
-    console.error('validate-key error', err);
-    return res.status(500).json({ valid: false, error: String(err) });
+  } catch (e) {
+    return res.status(500).json({ valid: false, error: String(e) });
   }
 }
